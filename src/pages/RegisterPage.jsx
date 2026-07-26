@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Card } from '../components/ui/Card';
+import { AuthFooter } from '../components/AuthFooter';
 import { useSignUp } from '../features/auth/hooks';
 import { useNotificationStore } from '../store/useNotificationStore';
 
@@ -36,7 +37,7 @@ export default function RegisterPage() {
 
   if (confirmationPending) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
+      <div className="relative flex min-h-screen items-center justify-center bg-slate-50 px-4">
         <Card className="w-full max-w-sm text-center">
           <h1 className="mb-2 text-xl font-semibold text-slate-900">Revisa tu email</h1>
           <p className="text-sm text-slate-500">
@@ -44,12 +45,13 @@ export default function RegisterPage() {
             luego <Link to="/login" className="text-brand-600 hover:underline">inicia sesión</Link>.
           </p>
         </Card>
+        <AuthFooter />
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
+    <div className="relative flex min-h-screen items-center justify-center bg-slate-50 px-4">
       <Card className="w-full max-w-sm">
         <h1 className="mb-1 text-xl font-semibold text-slate-900">Crear cuenta</h1>
         <p className="mb-6 text-sm text-slate-500">Únete o crea grupos de listas para tu familia.</p>
@@ -91,6 +93,7 @@ export default function RegisterPage() {
           </Link>
         </p>
       </Card>
+      <AuthFooter />
     </div>
   );
 }

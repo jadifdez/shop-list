@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Card } from '../components/ui/Card';
+import { AuthFooter } from '../components/AuthFooter';
 import { useSignIn } from '../features/auth/hooks';
 import { useNotificationStore } from '../store/useNotificationStore';
 
@@ -25,10 +26,10 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
+    <div className="relative flex min-h-screen items-center justify-center bg-slate-50 px-4">
       <Card className="w-full max-w-sm">
-        <h1 className="mb-1 text-xl font-semibold text-slate-900">Entrar</h1>
-        <p className="mb-6 text-sm text-slate-500">Accede para ver las listas de tus grupos.</p>
+        <h1 className="mb-1 text-xl font-semibold text-slate-900">Shop List</h1>
+        <p className="mb-6 text-sm text-slate-500">Tus listas de la compra, simples y compartidas.</p>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <Input
@@ -59,6 +60,7 @@ export default function LoginPage() {
           </Link>
         </p>
       </Card>
+      <AuthFooter />
     </div>
   );
 }

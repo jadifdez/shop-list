@@ -23,10 +23,22 @@ export async function fetchGroupMembers(groupId) {
 }
 
 export async function createGroup({ name, userId }) {
+  // Insert y select van en dos peticiones separadas a propósito: si fueran
+  // una sola (.insert().select()), Postgres genera un INSERT ... RETURNING,
+  // y la policy de SELECT de "groups" se evalúa en ese mismo instante, antes
+  // de que el trigger on_group_created (que te añade a group_members) haya
+  // quedado visible. Separándolo, el segundo SELECT ocurre en su propia
+  // petición, ya con la fila de group_members confirmada.
+  const id = crypto.randomUUID();
+  const { error: insertError } = await supabase
+    .from('groups')
+    .insert({ id, name, created_by: userId });
+  if (insertError) throw insertError;
+
   const { data, error } = await supabase
     .from('groups')
-    .insert({ name, created_by: userId })
-    .select()
+    .select('id, name, invite_code, created_by, created_at')
+    .eq('id', id)
     .single();
   if (error) throw error;
   return data;

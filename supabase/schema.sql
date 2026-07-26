@@ -145,26 +145,15 @@ create policy "profiles: solo puedo actualizar mi propio perfil"
   to authenticated
   using (id = auth.uid());
 
--- groups: veo grupos de los que soy miembro, o que he creado yo mismo.
--- El "o creado por mí" es necesario aparte de "soy miembro": al hacer
--- INSERT ... RETURNING (nuestro .insert().select().single()), Postgres
--- comprueba esta misma policy de SELECT para decidir si te devuelve la fila
--- recién insertada. La fila en group_members que te añade como miembro la
--- crea un trigger AFTER INSERT sobre groups, así que en el instante en que
--- se evalúa el RETURNING todavía no eres "miembro" según group_members.
--- Sin esta condición, crear un grupo devuelve 403 aunque el INSERT en sí
--- sea válido.
+-- groups: veo grupos de los que soy miembro. Estrictamente eso: si sales o
+-- te expulsan, dejas de verlo aunque lo hayas creado tú (created_by no
+-- cuenta para nada aquí a propósito, ver createGroup en src/features/groups/api.js
+-- para cómo se evita el problema de RETURNING sin necesitar esa excepción).
 drop policy if exists "groups: ver solo grupos de los que soy miembro" on public.groups;
 create policy "groups: ver solo grupos de los que soy miembro"
   on public.groups for select
   to authenticated
-  using (
-    created_by = auth.uid()
-    or exists (
-      select 1 from public.group_members gm
-      where gm.group_id = groups.id and gm.user_id = auth.uid()
-    )
-  );
+  using (public.is_group_member(id));
 
 drop policy if exists "groups: cualquier usuario autenticado puede crear un grupo" on public.groups;
 create policy "groups: cualquier usuario autenticado puede crear un grupo"
@@ -291,6 +280,59 @@ drop trigger if exists on_group_created on public.groups;
 create trigger on_group_created
   after insert on public.groups
   for each row execute function public.handle_new_group();
+
+-- Cuando alguien sale de group_members (por salir voluntariamente o por ser
+-- expulsado), reordena el grupo:
+--   - Si no queda nadie, el grupo se borra entero (cascada se lleva sus
+--     shopping_lists y list_items).
+--   - Si queda gente pero ningún admin (el que se fue era el único admin),
+--     se asciende a un miembro aleatorio de los que quedan.
+-- security definer: el DELETE/UPDATE/DELETE internos deben saltarse RLS,
+-- igual que el resto de funciones de este archivo (no hay policy de DELETE
+-- para "groups", a propósito, para que solo se pueda borrar por aquí).
+create or replace function public.handle_group_member_left()
+returns trigger
+language plpgsql
+security definer set search_path = public
+as $$
+declare
+  remaining_count int;
+  admins_count int;
+  new_admin uuid;
+begin
+  select count(*) into remaining_count
+  from public.group_members
+  where group_id = old.group_id;
+
+  if remaining_count = 0 then
+    delete from public.groups where id = old.group_id;
+    return old;
+  end if;
+
+  select count(*) into admins_count
+  from public.group_members
+  where group_id = old.group_id and role = 'admin';
+
+  if admins_count = 0 then
+    select user_id into new_admin
+    from public.group_members
+    where group_id = old.group_id
+    order by random()
+    limit 1;
+
+    update public.group_members
+    set role = 'admin'
+    where group_id = old.group_id and user_id = new_admin;
+  end if;
+
+  return old;
+end;
+$$;
+
+drop trigger if exists on_group_member_left on public.group_members;
+create trigger on_group_member_left
+  after delete on public.group_members
+  for each row execute function public.handle_group_member_left();
 
 -- Unirse a un grupo usando su código de invitación.
 -- security definer: puede leer "groups" aunque el que llama todavía no sea

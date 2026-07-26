@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { FaCrown } from 'react-icons/fa';
 import { FiCopy, FiTrash2 } from 'react-icons/fi';
@@ -20,8 +20,16 @@ export default function GroupDetailPage() {
 
   // Mismo queryKey que en GroupsPage: si ya estaba cacheado, esto no
   // dispara una petición nueva, solo lee del cache de TanStack Query.
-  const { data: groups } = useGroups();
+  const { data: groups, isLoading: groupsLoading } = useGroups();
   const group = groups?.find((g) => g.id === groupId);
+
+  // Si la URL apunta a un grupo que no existe o al que ya no perteneces
+  // (p.ej. saliste, te expulsaron, o el id es inválido), fuera a /groups.
+  useEffect(() => {
+    if (!groupsLoading && groups && !group) {
+      navigate('/groups', { replace: true });
+    }
+  }, [groupsLoading, groups, group, navigate]);
 
   const { data: members } = useGroupMembers(groupId);
   const { data: lists, isLoading: listsLoading } = useLists(groupId);
@@ -94,6 +102,8 @@ export default function GroupDetailPage() {
     await navigator.clipboard.writeText(group.invite_code);
     notify('Código copiado');
   }
+
+  if (!groupsLoading && groups && !group) return null;
 
   return (
     <div className="min-h-screen bg-slate-50">

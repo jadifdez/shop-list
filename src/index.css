@@ -1,0 +1,19 @@
+@import "tailwindcss";
+
+/*
+  Design tokens for Tailwind v4 live here, in CSS, instead of a tailwind.config.js.
+  Anything under --color-* becomes a Tailwind color (bg-brand-600, text-brand-600, ...).
+  See: https://tailwindcss.com/docs/theme
+*/
+@theme {
+  --color-brand-50: #f0fdf4;
+  --color-brand-100: #dcfce7;
+  --color-brand-200: #bbf7d0;
+  --color-brand-500: #22c55e;
+  --color-brand-600: #16a34a;
+  --color-brand-700: #15803d;
+}
+
+body {
+  @apply bg-slate-50 text-slate-900 antialiased;
+}

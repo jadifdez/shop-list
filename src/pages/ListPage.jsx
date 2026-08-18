@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { FiPlus } from 'react-icons/fi';
 import { AppHeader } from '../components/AppHeader';
 import { ListItemRow } from '../components/ListItemRow';
-import { Button } from '../components/ui/Button';
-import { Input } from '../components/ui/Input';
 import { Card } from '../components/ui/Card';
 import {
   useAddListItem,
+  useDeleteCheckedListItems,
   useDeleteListItem,
   useListItems,
   useListItemsRealtime,
@@ -25,6 +25,7 @@ export default function ListPage() {
   const addItem = useAddListItem(listId);
   const toggleItem = useToggleListItem(listId);
   const deleteItem = useDeleteListItem(listId);
+  const deleteChecked = useDeleteCheckedListItems(listId);
 
   const [name, setName] = useState('');
   const [quantity, setQuantity] = useState('');
@@ -60,6 +61,17 @@ export default function ListPage() {
     deleteItem.mutate(id, { onError: (error) => notify(error.message, 'error') });
   }
 
+  async function handleDeleteChecked() {
+    const ok = await confirm({
+      title: 'Vaciar comprados',
+      message: `¿Borrar los ${done.length} productos tachados de la lista?`,
+      confirmLabel: 'Borrar',
+      danger: true,
+    });
+    if (!ok) return;
+    deleteChecked.mutate(undefined, { onError: (error) => notify(error.message, 'error') });
+  }
+
   const pending = items?.filter((i) => !i.is_checked) ?? [];
   const done = items?.filter((i) => i.is_checked) ?? [];
 
@@ -67,8 +79,8 @@ export default function ListPage() {
     <div className="flex min-h-screen flex-col bg-slate-50">
       <AppHeader />
 
-      {/* pb-28: deja hueco para que la barra fija de abajo no tape el final de la lista */}
-      <main className="mx-auto w-full max-w-xl flex-1 px-4 py-6 pb-28 sm:py-8">
+      {/* pb-32: deja hueco para que la bandeja flotante de abajo no tape el final de la lista */}
+      <main className="mx-auto w-full max-w-xl flex-1 px-4 py-6 pb-32 sm:py-8">
         <Link to={`/groups/${groupId}`} className="text-sm text-slate-500 hover:underline">
           ← Volver al grupo
         </Link>
@@ -90,7 +102,17 @@ export default function ListPage() {
 
           {done.length > 0 && (
             <>
-              <h2 className="mt-4 mb-1 text-xs font-semibold uppercase text-slate-400">Comprado</h2>
+              <div className="mt-4 mb-1 flex items-center justify-between">
+                <h2 className="text-xs font-semibold uppercase text-slate-400">Comprado</h2>
+                <button
+                  type="button"
+                  onClick={handleDeleteChecked}
+                  disabled={deleteChecked.isPending}
+                  className="rounded-lg bg-red-100 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-200 disabled:opacity-50"
+                >
+                  Vaciar comprados
+                </button>
+              </div>
               <ul>
                 {done.map((item) => (
                   <ListItemRow key={item.id} item={item} onToggle={handleToggle} onDelete={handleDelete} />
@@ -101,34 +123,52 @@ export default function ListPage() {
         </Card>
       </main>
 
-      {/* Barra de añadir fija abajo: en móvil siempre está al alcance del pulgar,
-          como el input de una app de chat. safe-area-inset cubre el "notch"
-          inferior de iPhones con gesto de home. */}
-      <form
-        onSubmit={handleAdd}
-        className="fixed inset-x-0 bottom-0 flex gap-2 border-t border-slate-200 bg-white p-3"
+      {/* Bandeja flotante: no pegada al borde, para que se lea como un control
+          propio en vez de una franja de chat genérica. El separador punteado
+          entre nombre y cantidad remite a la línea de un tique de compra.
+          safe-area-inset cubre el "notch" inferior de iPhones con gesto de home. */}
+      <div
+        className="fixed inset-x-0 bottom-0 z-10 px-3 pb-3"
         style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}
       >
-        <div className="mx-auto flex w-full max-w-xl gap-2">
-          <Input
+        <form
+          onSubmit={handleAdd}
+          className="mx-auto flex w-full max-w-xl items-center gap-1 rounded-2xl border border-slate-200
+            bg-white p-1.5 shadow-lg shadow-slate-900/10 transition-shadow
+            focus-within:border-brand-300 focus-within:ring-2 focus-within:ring-brand-100"
+        >
+          <input
             aria-label="Producto"
             placeholder="Añadir producto..."
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="flex-1"
+            autoComplete="off"
+            enterKeyHint="done"
+            className="min-h-11 min-w-0 flex-1 rounded-xl bg-transparent px-3 text-base text-slate-900
+              outline-none placeholder:text-slate-400"
           />
-          <Input
+          <span className="h-6 w-px shrink-0 border-l border-dashed border-slate-300" aria-hidden="true" />
+          <input
             aria-label="Cantidad"
             placeholder="Cant."
             value={quantity}
             onChange={(e) => setQuantity(e.target.value)}
-            className="w-16"
+            enterKeyHint="done"
+            className="min-h-11 w-14 shrink-0 rounded-xl bg-transparent px-1 text-center text-base tabular-nums
+              text-slate-900 outline-none placeholder:text-slate-400"
           />
-          <Button type="submit" disabled={addItem.isPending} className="shrink-0">
-            Añadir
-          </Button>
-        </div>
-      </form>
+          <button
+            type="submit"
+            disabled={addItem.isPending || !name.trim()}
+            aria-label="Añadir producto"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-brand-600 text-white
+              shadow-sm transition-all hover:bg-brand-700 active:scale-90
+              disabled:scale-100 disabled:cursor-not-allowed disabled:bg-slate-300"
+          >
+            <FiPlus size={22} aria-hidden="true" />
+          </button>
+        </form>
+      </div>
     </div>
   );
 }

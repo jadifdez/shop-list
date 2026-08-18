@@ -1,9 +1,10 @@
 import { useState } from 'react';
+import { FiHash, FiPlus } from 'react-icons/fi';
 import { AppHeader } from '../components/AppHeader';
 import { GroupCard } from '../components/GroupCard';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
-import { Card } from '../components/ui/Card';
+import { Modal } from '../components/ui/Modal';
 import { useCreateGroup, useGroups, useJoinGroup } from '../features/groups/hooks';
 import { useCurrentUser } from '../store/useAuthStore';
 import { useNotificationStore } from '../store/useNotificationStore';
@@ -15,6 +16,8 @@ export default function GroupsPage() {
   const joinGroup = useJoinGroup();
   const notify = useNotificationStore((state) => state.notify);
 
+  const [createOpen, setCreateOpen] = useState(false);
+  const [joinOpen, setJoinOpen] = useState(false);
   const [newGroupName, setNewGroupName] = useState('');
   const [inviteCode, setInviteCode] = useState('');
 
@@ -26,6 +29,7 @@ export default function GroupsPage() {
       {
         onSuccess: () => {
           setNewGroupName('');
+          setCreateOpen(false);
           notify('Grupo creado');
         },
         onError: (error) => notify(error.message, 'error'),
@@ -39,6 +43,7 @@ export default function GroupsPage() {
     joinGroup.mutate(inviteCode, {
       onSuccess: () => {
         setInviteCode('');
+        setJoinOpen(false);
         notify('Te has unido al grupo');
       },
       onError: (error) => notify(error.message, 'error'),
@@ -50,38 +55,30 @@ export default function GroupsPage() {
       <AppHeader />
 
       <main className="mx-auto max-w-3xl px-4 py-8">
-        <div className="mb-8 grid gap-4 sm:grid-cols-2">
-          <Card>
-            <h2 className="mb-3 text-sm font-semibold text-slate-700">Crear un grupo</h2>
-            <form onSubmit={handleCreate} className="flex flex-col gap-2 sm:flex-row">
-              <Input
-                aria-label="Nombre del grupo"
-                placeholder="Ej: Casa, Cumpleaños..."
-                value={newGroupName}
-                onChange={(e) => setNewGroupName(e.target.value)}
-                className="flex-1"
-              />
-              <Button type="submit" disabled={createGroup.isPending} className="w-full sm:w-auto">
-                Crear
-              </Button>
-            </form>
-          </Card>
-
-          <Card>
-            <h2 className="mb-3 text-sm font-semibold text-slate-700">Unirme con un código</h2>
-            <form onSubmit={handleJoin} className="flex flex-col gap-2 sm:flex-row">
-              <Input
-                aria-label="Código de invitación"
-                placeholder="Código de invitación"
-                value={inviteCode}
-                onChange={(e) => setInviteCode(e.target.value)}
-                className="flex-1"
-              />
-              <Button type="submit" variant="secondary" disabled={joinGroup.isPending} className="w-full sm:w-auto">
-                Unirme
-              </Button>
-            </form>
-          </Card>
+        {/* Dos entradas de acción compactas en vez de dos formularios siempre
+            abiertos: cada una ocupa una fila y despliega su formulario en un
+            modal, dejando "Mis grupos" como protagonista de la página. */}
+        <div className="mb-8 grid grid-cols-2 gap-3">
+          <button
+            type="button"
+            onClick={() => setCreateOpen(true)}
+            className="flex flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed border-slate-300
+              bg-white px-3 py-4 text-sm font-medium text-slate-700 transition-colors
+              hover:border-brand-400 hover:bg-brand-50 hover:text-brand-700"
+          >
+            <FiPlus size={18} aria-hidden="true" />
+            Crear grupo
+          </button>
+          <button
+            type="button"
+            onClick={() => setJoinOpen(true)}
+            className="flex flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed border-slate-300
+              bg-white px-3 py-4 text-sm font-medium text-slate-700 transition-colors
+              hover:border-brand-400 hover:bg-brand-50 hover:text-brand-700"
+          >
+            <FiHash size={18} aria-hidden="true" />
+            Unirme con código
+          </button>
         </div>
 
         <h2 className="mb-3 text-sm font-semibold text-slate-700">Mis grupos</h2>
@@ -97,6 +94,36 @@ export default function GroupsPage() {
           ))}
         </div>
       </main>
+
+      <Modal open={createOpen} onClose={() => setCreateOpen(false)} title="Crear un grupo">
+        <form onSubmit={handleCreate} className="flex flex-col gap-3">
+          <Input
+            aria-label="Nombre del grupo"
+            placeholder="Ej: Casa, Cumpleaños..."
+            value={newGroupName}
+            onChange={(e) => setNewGroupName(e.target.value)}
+            autoFocus
+          />
+          <Button type="submit" disabled={createGroup.isPending}>
+            Crear
+          </Button>
+        </form>
+      </Modal>
+
+      <Modal open={joinOpen} onClose={() => setJoinOpen(false)} title="Unirme con un código">
+        <form onSubmit={handleJoin} className="flex flex-col gap-3">
+          <Input
+            aria-label="Código de invitación"
+            placeholder="Código de invitación"
+            value={inviteCode}
+            onChange={(e) => setInviteCode(e.target.value)}
+            autoFocus
+          />
+          <Button type="submit" variant="secondary" disabled={joinGroup.isPending}>
+            Unirme
+          </Button>
+        </form>
+      </Modal>
     </div>
   );
 }

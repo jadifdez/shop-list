@@ -11,4 +11,9 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 // Cliente único de Supabase para toda la app: auth, queries y realtime
 // se hacen todos a través de esta misma instancia.
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+  },
+});

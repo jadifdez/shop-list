@@ -60,3 +60,12 @@ export async function deleteListItem(id) {
   const { error } = await supabase.from('list_items').delete().eq('id', id);
   if (error) throw error;
 }
+
+export async function deleteCheckedListItems(listId) {
+  const { error } = await supabase
+    .from('list_items')
+    .delete()
+    .eq('list_id', listId)
+    .eq('is_checked', true);
+  if (error) throw error;
+}

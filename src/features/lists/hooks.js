@@ -5,6 +5,7 @@ import { useCurrentUser } from '../../store/useAuthStore';
 import {
   addListItem,
   createList,
+  deleteCheckedListItems,
   deleteList,
   deleteListItem,
   fetchListItems,
@@ -69,6 +70,14 @@ export function useToggleListItem(listId) {
 export function useDeleteListItem(listId) {
   const invalidate = useInvalidateListItems(listId);
   return useMutation({ mutationFn: deleteListItem, onSuccess: invalidate });
+}
+
+export function useDeleteCheckedListItems(listId) {
+  const invalidate = useInvalidateListItems(listId);
+  return useMutation({
+    mutationFn: () => deleteCheckedListItems(listId),
+    onSuccess: invalidate,
+  });
 }
 
 /**
